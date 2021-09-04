@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/go-gl/gl/v3.3-core/gl"
+	"github.com/go-gl/mathgl/mgl32"
 )
 
 type Shader struct {
@@ -34,7 +35,7 @@ func (s *Shader) Unbind() {
 	s.bind = false
 }
 
-func (s *Shader) SetUniformMatrix4f(name string, value []float32) {
+func (s *Shader) SetUniformMatrix4f(name string, value mgl32.Mat4) {
 	if !s.bind {
 		s.Bind()
 		defer s.Unbind()
@@ -61,7 +62,7 @@ func createShaderProgram(vertex string, fragment string) (uint32, error) {
 	}
 	defer gl.DeleteShader(vertexShader)
 
-	fragmentShader, err := loadShader(vertex, gl.FRAGMENT_SHADER)
+	fragmentShader, err := loadShader(fragment, gl.FRAGMENT_SHADER)
 	if err != nil {
 		return 0, err
 	}

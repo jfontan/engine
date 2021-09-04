@@ -23,6 +23,9 @@ func NewMesh(shader *Shader, vertices []float32, indices []int32) *Mesh {
 }
 
 func (m *Mesh) Render(t time.Duration) {
+	m.shader.Bind()
+	defer m.shader.Unbind()
+
 	gl.BindVertexArray(m.vao)
 	gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, m.ebo)
 
