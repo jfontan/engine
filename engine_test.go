@@ -30,6 +30,7 @@ func TestWindow(t *testing.T) {
 	shader.SetUniformMatrix4f("projection", projection)
 	shader.SetUniformVec4("color", 1.0, 1.0, 1.0, 1.0)
 
+	width, height := 10*4, 8*4
 	mesh := NewMesh(shader, vertices, indexes)
 	dlp := NewDLP(mesh, 1.0/4, 10*4, 8*4,
 		[3]float32{1.0, 1.0, 1.0},
@@ -54,10 +55,35 @@ func TestWindow(t *testing.T) {
 		// mesh.Render(time.Since(start))
 
 		t := time.Since(start)
-		i := float32(math.Sin(t.Seconds())*0.5 + 0.5)
-		for p := range pixels {
-			pixels[p] = i
+		// i := float32(math.Sin(t.Seconds())*0.5 + 0.5)
+
+		px0 := math.Sin(t.Seconds()) * 10.0
+		py0 := math.Cos(t.Seconds()) * 10.0
+
+		px1 := math.Sin(t.Seconds()*0.324) * 100.0
+		py1 := math.Cos(t.Seconds()*0.324) * 100.0
+
+		for x := 0; x < width; x++ {
+			for y := 0; y < height; y++ {
+				px := x - width/2.0
+				py := y - height/2.0
+
+				dx0 := px0 - float64(px)
+				dy0 := py0 - float64(py)
+				i0 := math.Sqrt(dx0*dx0 + dy0*dy0)
+
+				dx1 := px1 - float64(px)
+				dy1 := py1 - float64(py)
+				i1 := math.Sqrt(dx1*dx1 + dy1*dy1)
+
+				pixels[x+y*width] = float32(
+					math.Sin(i0)*0.25 + math.Sin(i1)*0.25 + 0.5)
+			}
 		}
+
+		// for p := range pixels {
+		// 	pixels[p] = i
+		// }
 
 		dlp.Render(time.Since(start))
 
