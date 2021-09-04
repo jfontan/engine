@@ -63,6 +63,10 @@ func (w *Window) ProcessEvents() bool {
 		switch t := event.(type) {
 		case *sdl.QuitEvent:
 			return false
+		case *sdl.KeyboardEvent:
+			if t.Keysym.Sym == sdl.Keycode(sdl.K_ESCAPE) {
+				return false
+			}
 		case *sdl.WindowEvent:
 			if t.Event == sdl.WINDOWEVENT_RESIZED {
 				println("resized", t.Data1, t.Data2)
