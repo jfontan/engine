@@ -35,6 +35,10 @@ func (m *Mesh) Render(t time.Duration) {
 	// TODO: unbind
 }
 
+func (m *Mesh) Shader() *Shader {
+	return m.shader
+}
+
 func (m *Mesh) loadBuffers(vertices []float32, indices []int32) {
 	var vbo uint32
 	gl.GenBuffers(1, &vbo)

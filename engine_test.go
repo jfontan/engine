@@ -31,21 +31,36 @@ func TestWindow(t *testing.T) {
 	shader.SetUniformVec4("color", 1.0, 1.0, 1.0, 1.0)
 
 	mesh := NewMesh(shader, vertices, indexes)
+	dlp := NewDLP(mesh, 1.0/4, 10*4, 8*4,
+		[3]float32{1.0, 1.0, 1.0},
+		[3]float32{0.1, 0.0, 0.1},
+	)
+	pixels := dlp.Pixels()
 
 	start := time.Now()
 	for window.ProcessEvents() {
 		gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
-		// println(time.Since(start).Seconds())
-		angle := float32(math.Sin(time.Since(start).Seconds()))
-		// rot := mgl32.Rotate3DY(mgl32.DegToRad(float32(angle))).Mat4()
-		rot := mgl32.HomogRotate3D(angle, mgl32.Vec3{0.0, 0.0, 1.0})
-		translate := mgl32.Translate3D(0.0, 0.0, -5.0)
-		model := translate.Mul4(rot)
-		_ = model
-		// model := mgl32.Ident4()
-		// model = model.Mul4(rot)
-		shader.SetUniformMatrix4f("model", model)
-		mesh.Render(time.Since(start))
+
+		// // println(time.Since(start).Seconds())
+		// angle := float32(math.Sin(time.Since(start).Seconds()))
+		// // rot := mgl32.Rotate3DY(mgl32.DegToRad(float32(angle))).Mat4()
+		// rot := mgl32.HomogRotate3D(angle, mgl32.Vec3{0.0, 0.0, 1.0})
+		// translate := mgl32.Translate3D(0.0, 0.0, -5.0)
+		// model := translate.Mul4(rot)
+		// _ = model
+		// // model := mgl32.Ident4()
+		// // model = model.Mul4(rot)
+		// shader.SetUniformMatrix4f("model", model)
+		// mesh.Render(time.Since(start))
+
+		t := time.Since(start)
+		i := float32(math.Sin(t.Seconds())*0.5 + 0.5)
+		for p := range pixels {
+			pixels[p] = i
+		}
+
+		dlp.Render(time.Since(start))
+
 		window.Blit()
 	}
 
