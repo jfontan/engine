@@ -2,11 +2,15 @@ package engine
 
 import (
 	"math"
+	"os"
 	"testing"
 	"time"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/go-gl/gl/v3.3-core/gl"
 	"github.com/go-gl/mathgl/mgl32"
+	"github.com/qmuntal/gltf"
+	"github.com/sheenobu/go-obj/obj"
 	"github.com/stretchr/testify/require"
 )
 
@@ -91,6 +95,89 @@ func TestWindow(t *testing.T) {
 	}
 
 	window.Close()
+}
+
+func TestGLTF(t *testing.T) {
+	model, err := gltf.Open("./assets/scene.gltf")
+	require.NoError(t, err)
+
+	println(len(model.Meshes))
+	println(model.Meshes[0].Name)
+	primitives := model.Meshes[0].Primitives
+	bufPos := primitives[0].Attributes["POSITION"]
+	println(bufPos)
+	indicesPos := primitives[0].Indices
+	println(*indicesPos)
+	spew.Dump(len(model.Buffers))
+}
+
+func TestOBJ(t *testing.T) {
+	f, err := os.Open("./assets/fireplace/MedievalFirePlace.obj")
+	require.NoError(t, err)
+	defer f.Close()
+
+	reader := obj.NewReader(f)
+	o, err := reader.Read()
+	require.NoError(t, err)
+
+	var vertices []float32
+	var indices []int32
+
+	var index int32
+	for _, f := range o.Faces {
+		for i := 0; i < 3; i++ {
+			v := f.Points[i].Vertex
+			vertices = append(vertices,
+				float32(v.X),
+				float32(v.Y),
+				float32(v.Z),
+			)
+			indices = append(indices, index)
+			index++
+		}
+	}
+
+	NormalizeCoords(vertices)
+	// spew.Dump(vertices)
+
+	err = Init()
+	require.NoError(t, err)
+
+	window, err := NewWindow()
+	require.NoError(t, err)
+
+	shader, err := NewShader(vertexShader, fragmentShader)
+	require.NoError(t, err)
+	shader.Bind()
+
+	projection := mgl32.Perspective(
+		mgl32.DegToRad(45.0),
+		800.0/600.0,
+		0.1,
+		100.0,
+	)
+	shader.SetUniformMatrix4f("projection", projection)
+	shader.SetUniformVec4("color", 1.0, 1.0, 1.0, 1.0)
+
+	mesh := NewMesh(shader, vertices, indices)
+
+	start := time.Now()
+	for window.ProcessEvents() {
+		gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
+
+		// scale := mgl32.Scale3D(0.001, 0.001, 0.001)
+		translate := mgl32.Translate3D(0.0, 0.0, -10.0)
+		s := float32(6.0)
+		scale := mgl32.Scale3D(s, s, s)
+		rot := mgl32.HomogRotate3D(
+			float32(time.Since(start).Seconds()),
+			mgl32.Vec3{0.0, 1.0, 0.0},
+		)
+		shader.SetUniformMatrix4f("model", translate.Mul4(scale.Mul4(rot)))
+		mesh.Render(time.Since(start))
+
+		window.Blit()
+	}
 }
 
 var (

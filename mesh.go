@@ -39,6 +39,47 @@ func (m *Mesh) Shader() *Shader {
 	return m.shader
 }
 
+func NormalizeCoords(vertices []float32) {
+	// var minX, minY, minZ float32
+	// var maxX, maxY, maxZ float32
+
+	minX, maxX := vertices[0], vertices[0]
+	minY, maxY := vertices[1], vertices[1]
+	minZ, maxZ := vertices[2], vertices[2]
+
+	l := len(vertices) / 3
+	for i := 1; i < l; i++ {
+		x := vertices[i*3]
+		y := vertices[i*3+1]
+		z := vertices[i*3+2]
+		minX = Minf32(minX, x)
+		minY = Minf32(minY, y)
+		minZ = Minf32(minZ, z)
+		maxX = Maxf32(maxX, x)
+		maxY = Maxf32(maxY, y)
+		maxZ = Maxf32(maxZ, z)
+	}
+
+	lenX := maxX - minX
+	lenY := maxY - minY
+	lenZ := maxZ - minZ
+
+	dX := minX + lenX/2.0
+	dY := minY + lenY/2.0
+	dZ := minZ + lenZ/2.0
+
+	ml := Maxf32(lenX, Maxf32(lenY, lenZ))
+	sX := 1.0 / ml
+	sY := 1.0 / ml
+	sZ := 1.0 / ml
+
+	for i := 0; i < l; i++ {
+		vertices[i*3+0] = (vertices[i*3+0] - dX) * sX
+		vertices[i*3+1] = (vertices[i*3+1] - dY) * sY
+		vertices[i*3+2] = (vertices[i*3+2] - dZ) * sZ
+	}
+}
+
 func (m *Mesh) loadBuffers(vertices []float32, indices []int32) {
 	var vbo uint32
 	gl.GenBuffers(1, &vbo)
@@ -62,4 +103,18 @@ func (m *Mesh) loadBuffers(vertices []float32, indices []int32) {
 	m.vbo = vbo
 	m.ebo = ebo
 	m.vao = vao
+}
+
+func Minf32(a, b float32) float32 {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+func Maxf32(a, b float32) float32 {
+	if a > b {
+		return a
+	}
+	return b
 }
