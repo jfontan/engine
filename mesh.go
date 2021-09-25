@@ -7,17 +7,30 @@ import (
 )
 
 type Mesh struct {
-	vao, vbo, ebo uint32
-	shader        *Shader
-	size          int32
+	vao, ebo              uint32
+	vbos                  []uint32
+	shader                *Shader
+	size                  int32
+	vertices, normals, uv []float32
+	indices               []int32
 }
 
-func NewMesh(shader *Shader, vertices []float32, indices []int32) *Mesh {
+func NewMesh(
+	shader *Shader,
+	vertices []float32,
+	normals []float32,
+	uv []float32,
+	indices []int32,
+) *Mesh {
 	mesh := &Mesh{
-		shader: shader,
-		size:   int32(len(indices)),
+		shader:   shader,
+		size:     int32(len(indices)),
+		vertices: vertices,
+		normals:  normals,
+		uv:       uv,
+		indices:  indices,
 	}
-	mesh.loadBuffers(vertices, indices)
+	mesh.loadBuffers()
 
 	return mesh
 }
@@ -80,27 +93,53 @@ func NormalizeCoords(vertices []float32) {
 	}
 }
 
-func (m *Mesh) loadBuffers(vertices []float32, indices []int32) {
+func (m *Mesh) loadBuffers() {
+	var vao uint32
+	gl.GenVertexArrays(1, &vao)
+	gl.BindVertexArray(vao)
+
 	var vbo uint32
+
+	// vertices
 	gl.GenBuffers(1, &vbo)
 	gl.BindBuffer(gl.ARRAY_BUFFER, vbo)
 	gl.BufferData(
-		gl.ARRAY_BUFFER, 4*len(vertices), gl.Ptr(vertices), gl.STATIC_DRAW)
+		gl.ARRAY_BUFFER, 4*len(m.vertices), gl.Ptr(m.vertices), gl.STATIC_DRAW)
+
+	gl.VertexAttribPointer(0, 3, gl.FLOAT, false, 3*4, nil)
+	gl.EnableVertexAttribArray(0)
+	m.vbos = append(m.vbos, vbo)
+
+	// normals
+	if len(m.normals) > 0 {
+		gl.GenBuffers(1, &vbo)
+		gl.BindBuffer(gl.ARRAY_BUFFER, vbo)
+		gl.BufferData(
+			gl.ARRAY_BUFFER, 4*len(m.normals), gl.Ptr(m.normals), gl.STATIC_DRAW)
+
+		gl.VertexAttribPointer(1, 3, gl.FLOAT, false, 3*4, nil)
+		gl.EnableVertexAttribArray(1)
+		m.vbos = append(m.vbos, vbo)
+	}
+
+	// uv
+	if len(m.uv) > 0 {
+		gl.GenBuffers(1, &vbo)
+		gl.BindBuffer(gl.ARRAY_BUFFER, vbo)
+		gl.BufferData(
+			gl.ARRAY_BUFFER, 4*len(m.uv), gl.Ptr(m.uv), gl.STATIC_DRAW)
+
+		gl.VertexAttribPointer(2, 2, gl.FLOAT, false, 2*4, nil)
+		gl.EnableVertexAttribArray(2)
+		m.vbos = append(m.vbos, vbo)
+	}
 
 	var ebo uint32
 	gl.GenBuffers(1, &ebo)
 	gl.BindBuffer(gl.ELEMENT_ARRAY_BUFFER, ebo)
 	gl.BufferData(
-		gl.ELEMENT_ARRAY_BUFFER, 4*len(indices), gl.Ptr(indices), gl.STATIC_DRAW)
+		gl.ELEMENT_ARRAY_BUFFER, 4*len(m.indices), gl.Ptr(m.indices), gl.STATIC_DRAW)
 
-	var vao uint32
-	gl.GenVertexArrays(1, &vao)
-	gl.BindVertexArray(vao)
-
-	gl.VertexAttribPointer(0, 3, gl.FLOAT, false, 3*4, nil)
-	gl.EnableVertexAttribArray(0)
-
-	m.vbo = vbo
 	m.ebo = ebo
 	m.vao = vao
 }

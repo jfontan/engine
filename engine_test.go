@@ -35,7 +35,7 @@ func TestWindow(t *testing.T) {
 	shader.SetUniformVec4("color", 1.0, 1.0, 1.0, 1.0)
 
 	width, height := 10*4, 8*4
-	mesh := NewMesh(shader, vertices, indexes)
+	mesh := NewMesh(shader, vertices, nil, nil, indexes)
 	dlp := NewDLP(mesh, 1.0/4, 10*4, 8*4,
 		[3]float32{1.0, 1.0, 1.0},
 		[3]float32{0.1, 0.0, 0.1},
@@ -112,7 +112,7 @@ func TestGLTF(t *testing.T) {
 }
 
 func TestOBJ(t *testing.T) {
-	f, err := os.Open("./assets/fireplace/MedievalFirePlace.obj")
+	f, err := os.Open("./assets/tankard/MaryRoseTankard_100kMesh.obj")
 	require.NoError(t, err)
 	defer f.Close()
 
@@ -121,17 +121,29 @@ func TestOBJ(t *testing.T) {
 	require.NoError(t, err)
 
 	var vertices []float32
+	var normals []float32
+	var uv []float32
 	var indices []int32
 
 	var index int32
 	for _, f := range o.Faces {
 		for i := 0; i < 3; i++ {
 			v := f.Points[i].Vertex
+			n := f.Points[i].Normal
+			u := f.Points[i].Texture
 			vertices = append(vertices,
 				float32(v.X),
 				float32(v.Y),
 				float32(v.Z),
 			)
+			if n != nil {
+				normals = append(normals,
+					float32(n.X),
+					float32(n.Y),
+					float32(n.Z),
+				)
+			}
+			uv = append(uv, float32(u.U), float32(u.V))
 			indices = append(indices, index)
 			index++
 		}
@@ -159,10 +171,19 @@ func TestOBJ(t *testing.T) {
 	shader.SetUniformMatrix4f("projection", projection)
 	shader.SetUniformVec4("color", 1.0, 1.0, 1.0, 1.0)
 
-	mesh := NewMesh(shader, vertices, indices)
+	mesh := NewMesh(shader, vertices, normals, uv, indices)
+
+	texture, err := NewTexture("./assets/tankard/MaryRoseTankard_100kMesh.png")
+	require.NoError(t, err)
+
+	texture.Bind()
+
+	gl.Disable(gl.CULL_FACE)
+	gl.Enable(gl.DEPTH_TEST)
 
 	start := time.Now()
 	for window.ProcessEvents() {
+		frameStart := time.Now()
 		gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 
 		// scale := mgl32.Scale3D(0.001, 0.001, 0.001)
@@ -177,14 +198,18 @@ func TestOBJ(t *testing.T) {
 		mesh.Render(time.Since(start))
 
 		window.Blit()
+		println(time.Second / time.Since(frameStart))
 	}
 }
 
 var (
 	vertexShader = `#version 330
 
-in vec3  position;
+layout (location = 0) in vec3  position;
+layout (location = 1) in vec3  normal;
+layout (location = 2) in vec2  uv;
 out vec4 vertex_color;
+out vec2 textureCoords;
 
 uniform mat4 model;
 uniform mat4 projection;
@@ -194,6 +219,7 @@ void main(void){
 
   gl_Position = projection * model * vec4(position,1.0);
   vertex_color = color;
+  textureCoords = uv;
 
 }
 `
@@ -201,11 +227,15 @@ void main(void){
 	fragmentShader = `#version 330
 
 in vec4 vertex_color;
+in vec2 textureCoords;
 out vec4 color;
+
+uniform sampler2D textureSampler;
 
 void main(void){
   // out_color = vec4(1.0f, 0.5f, 0.2f, 1.0f);
-  color = vertex_color;
+  //color = vertex_color;
+  color = vertex_color * texture(textureSampler, textureCoords);
 }
 `
 
